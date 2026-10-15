@@ -1,6 +1,6 @@
 {
   "as_of": "2026-10-15",
-  "generated_at": "2026-10-15T15:35:26.148751+00:00",
+  "generated_at": "2026-10-15T22:54:43.023403+00:00",
   "methodology_version": "1.0.0",
   "readings": [
     {
@@ -13,11 +13,11 @@
         {
           "kind": "rates",
           "value": 1,
-          "reason": "2y differential +1.39pp vs peers, widening 11bp over 20 days.",
+          "reason": "2y differential +1.40pp vs peers, widening 13bp over 20 days.",
           "confidence": "ok",
           "inputs": {
-            "differential_pp": 1.39,
-            "change_bps": 11.0
+            "differential_pp": 1.4,
+            "change_bps": 13.4
           }
         },
         {
@@ -53,11 +53,11 @@
         {
           "kind": "rates",
           "value": -2,
-          "reason": "2y differential -0.69pp vs peers, narrowing 26bp over 20 days.",
+          "reason": "2y differential -0.68pp vs peers, narrowing 23bp over 20 days.",
           "confidence": "ok",
           "inputs": {
-            "differential_pp": -0.686,
-            "change_bps": -25.5
+            "differential_pp": -0.676,
+            "change_bps": -23.1
           }
         },
         {
@@ -84,19 +84,19 @@
     },
     {
       "currency": "EUR",
-      "total": -2,
+      "total": -1,
       "band": "neutral",
       "derived": false,
       "note": "",
       "components": [
         {
           "kind": "rates",
-          "value": -2,
-          "reason": "2y differential -0.83pp vs peers, narrowing 16bp over 20 days.",
+          "value": -1,
+          "reason": "2y differential -0.82pp vs peers, narrowing 13bp over 20 days.",
           "confidence": "ok",
           "inputs": {
-            "differential_pp": -0.831,
-            "change_bps": -15.5
+            "differential_pp": -0.821,
+            "change_bps": -13.1
           }
         },
         {
@@ -131,11 +131,11 @@
         {
           "kind": "rates",
           "value": 1,
-          "reason": "2y differential +1.10pp vs peers, widening 12bp over 20 days.",
+          "reason": "2y differential +1.11pp vs peers, widening 14bp over 20 days.",
           "confidence": "ok",
           "inputs": {
-            "differential_pp": 1.102,
-            "change_bps": 11.9
+            "differential_pp": 1.112,
+            "change_bps": 14.3
           }
         },
         {
@@ -171,11 +171,11 @@
         {
           "kind": "rates",
           "value": -1,
-          "reason": "2y differential -2.22pp vs peers, widening 6bp over 20 days.",
+          "reason": "2y differential -2.21pp vs peers, widening 9bp over 20 days.",
           "confidence": "ok",
           "inputs": {
-            "differential_pp": -2.223,
-            "change_bps": 6.4
+            "differential_pp": -2.213,
+            "change_bps": 8.8
           }
         },
         {
@@ -244,11 +244,11 @@
         {
           "kind": "rates",
           "value": 1,
-          "reason": "2y differential +1.25pp vs peers, widening 12bp over 20 days.",
+          "reason": "2y differential +1.20pp vs peers, narrowing 0bp over 20 days.",
           "confidence": "ok",
           "inputs": {
-            "differential_pp": 1.246,
-            "change_bps": 11.7
+            "differential_pp": 1.196,
+            "change_bps": -0.3
           }
         },
         {
@@ -278,7 +278,7 @@
   "sources": {
     "cot": {
       "url": "https://www.cftc.gov/dea/newcot/FinFutWk.txt",
-      "retrieved_at": "2026-10-15T15:35:20.720057+00:00",
+      "retrieved_at": "2026-10-15T22:54:38.727241+00:00",
       "data_dated": null,
       "transport": "http",
       "ok": true,
@@ -286,7 +286,7 @@
     },
     "calendar": {
       "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
-      "retrieved_at": "2026-10-15T15:35:20.755608+00:00",
+      "retrieved_at": "2026-10-15T22:54:38.810085+00:00",
       "data_dated": null,
       "transport": "http",
       "ok": true,
@@ -294,8 +294,8 @@
     },
     "yields": {
       "url": "https://github.com/jathniel0805/wagmacro/tree/main/wagmacro/ingest/yields",
-      "retrieved_at": "2026-10-15T15:35:26.148397+00:00",
-      "data_dated": "2026-10-14",
+      "retrieved_at": "2026-10-15T22:54:43.023175+00:00",
+      "data_dated": "2026-10-15",
       "transport": "http",
       "ok": true,
       "detail": "2y from AUD, CAD, EUR, GBP, JPY, USD"
