@@ -237,18 +237,22 @@ CALENDAR_BANDS: tuple[tuple[float, int], ...] = (
 SOURCE_URLS: Mapping[str, str] = {
     "cot": "https://www.cftc.gov/dea/newcot/FinFutWk.txt",
     "calendar": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
-    "yields_us": "https://home.treasury.gov/resource-center/data-chart-center"
-                 "/interest-rates/daily-treasury-rates.csv/2026/all",
-    "yields_intl": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+    #: Yields no longer have one URL. Each currency comes from the
+    #: institution that publishes it, and each adapter owns its own
+    #: endpoint — see ingest/yields/. FRED used to be here and was
+    #: removed: it refuses datacenter IPs, so every request from the
+    #: build runner timed out.
+    "yields": "https://github.com/jathniel0805/wagmacro"
+              "/tree/main/wagmacro/ingest/yields",
 }
 
-#: Hosts that must be reachable for live fetching. If these are not on
-#: the account's network allowlist the transport layer falls back to
-#: cached payloads and every affected reading is marked STALE rather
-#: than quietly scoring zero.
+#: Hosts that must be reachable for live fetching. If these are not
+#: reachable the transport layer falls back to cached payloads and every
+#: affected reading is marked STALE rather than quietly scoring zero.
+#:
+#: The yield publishers are listed by the yields package itself, since
+#: that is where adding or dropping one happens.
 REQUIRED_HOSTS: tuple[str, ...] = (
     "www.cftc.gov",
     "nfs.faireconomy.media",
-    "fred.stlouisfed.org",
-    "home.treasury.gov",
 )

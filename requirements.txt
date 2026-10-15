@@ -1,0 +1,12 @@
+# The package is standard-library only with one exception.
+#
+# The Bank of England publishes its yield curves as a zip of Excel
+# workbooks rather than a feed, so reading the UK 2-year spot rate needs
+# a spreadsheet reader. Every other source is CSV, JSON or XML and is
+# parsed with the standard library.
+#
+# If this ever becomes a problem, the alternative is the BoE Interactive
+# Database, which is a plain CSV endpoint — but its series are 5y/10y/20y
+# par yields, not the 2-year, so it would be the wrong number cleanly
+# fetched. See wagmacro/ingest/yields/boe.py.
+openpyxl==3.1.5

@@ -1,23 +1,31 @@
-name: Verify yield sources
+name: Diagnose yield adapters
 
-# Manual only. This is a read-only investigation, not part of the daily
-# build: it tells us what the candidate yield series actually are, so the
-# Rates component can be wired to something confirmed instead of guessed.
+# Manual only. Fetches all six yield publishers and prints the series
+# each adapter extracted, without building or publishing anything.
+#
+# This replaces the earlier throwaway probe script. The probe answered
+# "which hosts are reachable and in what format"; those answers are now
+# baked into the adapters, and the open question is the next one along:
+# does each parser read the right column out of the format it was
+# written for? That is what this run shows.
 on:
   workflow_dispatch:
 
 jobs:
-  probe:
+  diagnose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      # openpyxl is needed only to look inside the BoE yield-curve
-      # archive. It is a probe-time dependency, not a package one.
-      - name: Install probe dependencies
-        run: pip install --quiet openpyxl==3.1.5
 
-      - name: Probe yield sources
-        run: python tools/verify_yields.py
+      - name: Install dependencies
+        run: pip install --quiet -r requirements.txt
+
+      - name: Parser tests (offline, against captured fixtures)
+        run: python -m unittest wagmacro.tests.test_yields -v
+
+      - name: Diagnose against live publishers
+        run: python -m wagmacro.cli --diagnose

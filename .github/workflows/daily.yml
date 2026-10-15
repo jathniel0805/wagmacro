@@ -26,10 +26,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      # openpyxl only — the BoE publishes its yield curve as a
+      # spreadsheet. See requirements.txt.
+      - name: Install dependencies
+        run: pip install --quiet -r requirements.txt
+
       # The suite is pure and offline. If it fails, the board does not
       # get published — a broken scorer must not reach the dashboard.
       - name: Run tests
-        run: python -m unittest wagmacro.tests.test_model
+        run: |
+          python -m unittest wagmacro.tests.test_model
+          python -m unittest wagmacro.tests.test_yields
 
       - name: Build board
         run: python -m wagmacro.cli --out site/index.html --history-dir history
