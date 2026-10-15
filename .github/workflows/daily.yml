@@ -1,0 +1,65 @@
+name: Daily macro board
+
+# 22:30 UTC Sun-Thu = 06:30 Manila Mon-Fri, after the New York close.
+# Change the five cron fields to move it; everything else can stay.
+on:
+  schedule:
+    - cron: "30 22 * * 0-4"
+  workflow_dispatch:          # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: write             # to commit the day's board JSON
+  pages: write                # to publish to GitHub Pages
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The suite is pure and offline. If it fails, the board does not
+      # get published — a broken scorer must not reach the dashboard.
+      - name: Run tests
+        run: python -m unittest wagmacro.tests.test_model
+
+      - name: Build board
+        run: python -m wagmacro.cli --out site/index.html --history-dir history
+
+      # The archive is what the +/-5 band gets recalibrated against, so
+      # it has to accumulate in the repo rather than in a container.
+      - name: Commit today's board
+        run: |
+          git config user.name  "wagmacro"
+          git config user.email "actions@github.com"
+          git add history
+          if git diff --quiet --cached; then
+            echo "no new board to archive"
+          else
+            git commit -m "board $(date -u +%F)"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

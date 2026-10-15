@@ -1,0 +1,18 @@
+name: Verify yield sources
+
+# Manual only. This is a read-only investigation, not part of the daily
+# build: it tells us what the candidate yield series actually are, so the
+# Rates component can be wired to something confirmed instead of guessed.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Probe FRED series and national publishers
+        run: python tools/verify_yields.py
