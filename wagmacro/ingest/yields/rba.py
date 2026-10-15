@@ -22,15 +22,34 @@ import io
 from datetime import date, datetime
 
 from ...core.types import Currency
-from .base import ProviderResult, Series
+from .base import ProviderResult, Series, merge
 
-URL = "https://www.rba.gov.au/statistics/tables/csv/f2-data.csv"
+#: Fetched and merged, later winning on a shared date. The first is the
+#: verified file; on 2026-10-15 it returned 3,292 observations but the
+#: newest was 2026-10-07, a week behind the other publishers. Whether
+#: that is an RBA publication lag or rows this parser is dropping is an
+#: open question — `skipped_rows` below is what answers it, rather than
+#: another round of guessing.
+URLS = (
+    "https://www.rba.gov.au/statistics/tables/csv/f2-data.csv",
+    "https://www.rba.gov.au/statistics/tables/csv/f2.1-data.csv",
+)
 
 TITLE_ROW_KEY = "title"
 TENOR_MATCH = "2 year"
 
 #: The RBA has used more than one of these over the years.
 _DATE_FORMATS = ("%d-%b-%Y", "%d/%m/%Y", "%Y-%m-%d", "%d %b %Y")
+
+#: Rows whose first cell looked like it wanted to be a date but did not
+#: parse. If the file is fresher than the series, the dropped rows are
+#: in here and their format is the bug.
+skipped_rows: tuple[str, ...] = ()
+
+#: Metadata labels that legitimately sit in column 0 and are not dates.
+_KNOWN_LABELS = {"title", "description", "frequency", "type", "units",
+                 "source", "publication date", "series id", "collection",
+                 "mnemonic", ""}
 
 
 def _as_date(raw: str) -> date | None:
@@ -62,12 +81,18 @@ def parse(text: str) -> Series:
     if column is None:
         return ()
 
+    global skipped_rows
+    dropped: list[str] = []
     out: list[tuple[date, float]] = []
+
     for row in rows:
-        if len(row) <= column:
+        if len(row) <= column or not row:
             continue
-        when = _as_date(row[0])
+        first = row[0].strip()
+        when = _as_date(first)
         if when is None:
+            if first.lower() not in _KNOWN_LABELS and len(dropped) < 5:
+                dropped.append(first[:40])
             continue
         cell = row[column].strip()
         if not cell:
@@ -76,18 +101,38 @@ def parse(text: str) -> Series:
             out.append((when, float(cell)))
         except ValueError:
             continue
+
+    skipped_rows = tuple(dropped)
     out.sort()
     return tuple(out)
 
 
 def fetch(get) -> ProviderResult:
-    status, body = get(URL)
-    if status != 200:
-        return ProviderResult(Currency.AUD, URL, detail=f"HTTP {status}")
-    # The RBA serves this as application/octet-stream with a BOM.
-    series = parse(body.decode("utf-8-sig", errors="replace"))
-    if not series:
-        return ProviderResult(Currency.AUD, URL,
-                              detail="fetched but no observations parsed")
-    return ProviderResult(Currency.AUD, URL, series=series, ok=True,
-                          detail=f"{len(series)} obs, latest {series[-1][0]}")
+    parts: list[Series] = []
+    notes: list[str] = []
+
+    for target in URLS:
+        label = target.rsplit("/", 1)[-1]
+        status, body = get(target)
+        if status != 200:
+            notes.append(f"{label}: HTTP {status}")
+            continue
+        # The RBA serves this as application/octet-stream with a BOM.
+        series = parse(body.decode("utf-8-sig", errors="replace"))
+        if not series:
+            notes.append(f"{label}: 200 but no observations parsed")
+            continue
+        parts.append(series)
+        note = f"{label}: {len(series)} obs to {series[-1][0]}"
+        if skipped_rows:
+            note += f" (unparsed first cells: {', '.join(skipped_rows)})"
+        notes.append(note)
+
+    merged = merge(*parts)
+    if not merged:
+        return ProviderResult(Currency.AUD, URLS[0],
+                              detail="; ".join(notes) or "no attempt made")
+    return ProviderResult(
+        Currency.AUD, URLS[0], series=merged, ok=True,
+        detail=f"{len(merged)} obs merged, latest {merged[-1][0]} "
+               f"[{'; '.join(notes)}]")

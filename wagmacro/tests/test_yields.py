@@ -28,7 +28,7 @@ from datetime import date
 from wagmacro.core.types import Currency
 from wagmacro.ingest.yields import boc, boe, ecb, mof, rba, treasury
 from wagmacro.ingest.yields.base import (YieldPoint, YieldSet, from_manual,
-                                         point_from_series)
+                                         merge, point_from_series)
 
 
 # ---------------------------------------------------------------- ECB ----
@@ -300,6 +300,56 @@ class TestSeriesToPoint(unittest.TestCase):
 
     def test_empty_series(self):
         self.assertIsNone(point_from_series(Currency.USD, (), 20))
+
+
+class TestMerge(unittest.TestCase):
+    """The archive-is-stale bug, pinned.
+
+    The UK series came back fourteen days old because the adapter took
+    whichever file answered first: the archive had 12,068 observations
+    and the current-month file had the recent ones, and first-wins chose
+    depth over freshness without ever noticing.
+    """
+
+    ARCHIVE = ((date(2026, 9, 28), 4.71),
+               (date(2026, 9, 29), 4.68),
+               (date(2026, 9, 30), 4.66))
+    CURRENT = ((date(2026, 9, 30), 4.67),      # overlaps, revised
+               (date(2026, 10, 1), 4.70),
+               (date(2026, 10, 2), 4.73))
+
+    def test_keeps_depth_and_freshness(self):
+        merged = merge(self.ARCHIVE, self.CURRENT)
+        self.assertEqual(merged[0][0], date(2026, 9, 28))
+        self.assertEqual(merged[-1][0], date(2026, 10, 2))
+        self.assertEqual(len(merged), 5)
+
+    def test_later_argument_wins_on_overlap(self):
+        merged = merge(self.ARCHIVE, self.CURRENT)
+        overlap = dict(merged)[date(2026, 9, 30)]
+        self.assertEqual(overlap, 4.67)
+
+    def test_stays_sorted(self):
+        merged = merge(self.CURRENT, self.ARCHIVE)
+        self.assertEqual([d for d, _ in merged], sorted(d for d, _ in merged))
+
+    def test_tolerates_empty_parts(self):
+        self.assertEqual(merge((), self.CURRENT, ()), self.CURRENT)
+        self.assertEqual(merge(), ())
+
+
+class TestRbaDiagnostics(unittest.TestCase):
+    def test_reports_unparseable_first_cells(self):
+        # A date format the parser does not know must be REPORTED, not
+        # silently dropped — that is how a stale series hides.
+        odd = RBA_CSV + "2026-10-08T00:00:00+11:00,3.60,3.76,4.33\n"
+        rba.parse(odd)
+        self.assertTrue(rba.skipped_rows)
+        self.assertIn("2026-10-08", rba.skipped_rows[0])
+
+    def test_known_metadata_labels_are_not_reported_as_drops(self):
+        rba.parse(RBA_CSV)
+        self.assertEqual(rba.skipped_rows, ())
 
 
 class TestYieldSetMaths(unittest.TestCase):

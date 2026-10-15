@@ -35,9 +35,13 @@ import zipfile
 from datetime import date, datetime
 
 from ...core.types import Currency
-from .base import ProviderResult, Series
+from .base import ProviderResult, Series, merge
 
-#: Tried in order. The second is the verified one.
+#: BOTH are fetched and merged, in this order, so the later one wins on
+#: any shared date. The archive carries the depth — 12,068 observations
+#: on 2026-10-15 — but ends at the previous month end, so on its own it
+#: reported a yield fourteen days stale. The current-month file is
+#: shallow but fresh. Neither is sufficient alone.
 URLS = (
     "https://www.bankofengland.co.uk/-/media/boe/files/statistics/"
     "yield-curves/glcnominalddata.zip",
@@ -130,19 +134,27 @@ def _as_date(cell) -> date | None:
 
 
 def fetch(get) -> ProviderResult:
-    attempts: list[str] = []
+    parts: list[Series] = []
+    notes: list[str] = []
+
     for target in URLS:
-        status, body = get(target)
         name = target.rsplit("/", 1)[-1]
+        status, body = get(target)
         if status != 200:
-            attempts.append(f"{name}: HTTP {status}")
+            notes.append(f"{name}: HTTP {status}")
             continue
         series = parse(body)
-        if series:
-            return ProviderResult(
-                Currency.GBP, target, series=series, ok=True,
-                detail=f"{len(series)} obs from {name}, "
-                       f"latest {series[-1][0]}")
-        attempts.append(f"{name}: 200 but no 2y spot series found")
-    return ProviderResult(Currency.GBP, URLS[-1],
-                          detail="; ".join(attempts) or "no attempt made")
+        if not series:
+            notes.append(f"{name}: 200 but no 2y spot series found")
+            continue
+        parts.append(series)
+        notes.append(f"{name}: {len(series)} obs to {series[-1][0]}")
+
+    merged = merge(*parts)
+    if not merged:
+        return ProviderResult(Currency.GBP, URLS[-1],
+                              detail="; ".join(notes) or "no attempt made")
+    return ProviderResult(
+        Currency.GBP, URLS[-1], series=merged, ok=True,
+        detail=f"{len(merged)} obs merged, latest {merged[-1][0]} "
+               f"[{'; '.join(notes)}]")

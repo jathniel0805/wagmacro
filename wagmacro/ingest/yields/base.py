@@ -109,6 +109,22 @@ def from_manual(as_of: date,
     return YieldSet(as_of=as_of, points=points, verified_source=True)
 
 
+def merge(*parts: Series) -> Series:
+    """Combine several series, later arguments winning on a shared date.
+
+    Several publishers split their data across a long archive and a
+    small current-period file. Taking whichever one answers first gets
+    you either deep history or a fresh reading, never both — the UK
+    series came back fourteen days stale for exactly that reason. Merging
+    keeps the archive's depth and the current file's freshness, and the
+    argument order decides who wins where they overlap.
+    """
+    combined: dict[date, float] = {}
+    for part in parts:
+        combined.update(part)
+    return tuple(sorted(combined.items()))
+
+
 def point_from_series(currency: Currency, series: Series,
                       lookback: int) -> YieldPoint | None:
     """Latest observation, plus the one `lookback` observations earlier.

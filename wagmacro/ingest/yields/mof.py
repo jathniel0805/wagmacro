@@ -27,11 +27,23 @@ import io
 from datetime import date
 
 from ...core.types import Currency
-from .base import ProviderResult, Series
+from .base import ProviderResult, Series, merge
 
-#: Tried in order. First one that yields a usable series wins.
+#: ALL of these are fetched and merged, later winning on a shared date.
+#:
+#: The monthly file is the only one verified to exist, and on 2026-10-15
+#: it held nine rows — too few for the 20-observation lookback, so Japan
+#: scored on level alone with no repricing measure. The historical files
+#: below are candidates for the depth; `jgbcm_all.csv` at the top level
+#: returned 404, so several plausible paths are tried and whichever
+#: answer is reported in the result detail.
 URLS = (
+    "https://www.mof.go.jp/jgbs/reference/interest_rate/historical/"
+    "jgbcm_all.csv",
+    "https://www.mof.go.jp/jgbs/reference/interest_rate/data/jgbcm_all.csv",
+    "https://www.mof.go.jp/english/jgbs/reference/interest_rate/jgbcm_all.csv",
     "https://www.mof.go.jp/jgbs/reference/interest_rate/jgbcm_all.csv",
+    #: Verified. Fresh but shallow, so it goes last and wins on overlap.
     "https://www.mof.go.jp/jgbs/reference/interest_rate/jgbcm.csv",
 )
 
@@ -96,18 +108,27 @@ def parse(raw: bytes) -> Series:
 
 
 def fetch(get) -> ProviderResult:
-    attempts: list[str] = []
+    parts: list[Series] = []
+    notes: list[str] = []
+
     for target in URLS:
+        label = "/".join(target.split("/")[-2:])
         status, body = get(target)
         if status != 200:
-            attempts.append(f"{target.rsplit('/', 1)[-1]}: HTTP {status}")
+            notes.append(f"{label}: HTTP {status}")
             continue
         series = parse(body)
-        if series:
-            return ProviderResult(
-                Currency.JPY, target, series=series, ok=True,
-                detail=f"{len(series)} obs from "
-                       f"{target.rsplit('/', 1)[-1]}, latest {series[-1][0]}")
-        attempts.append(f"{target.rsplit('/', 1)[-1]}: 200 but unparsed")
-    return ProviderResult(Currency.JPY, URLS[0],
-                          detail="; ".join(attempts) or "no attempt made")
+        if not series:
+            notes.append(f"{label}: 200 but unparsed")
+            continue
+        parts.append(series)
+        notes.append(f"{label}: {len(series)} obs to {series[-1][0]}")
+
+    merged = merge(*parts)
+    if not merged:
+        return ProviderResult(Currency.JPY, URLS[-1],
+                              detail="; ".join(notes) or "no attempt made")
+    return ProviderResult(
+        Currency.JPY, URLS[-1], series=merged, ok=True,
+        detail=f"{len(merged)} obs merged, latest {merged[-1][0]} "
+               f"[{'; '.join(notes)}]")
