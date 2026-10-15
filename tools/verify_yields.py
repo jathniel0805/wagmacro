@@ -1,23 +1,34 @@
-"""Find out what the candidate yield series ACTUALLY are.
+"""Round 2: confirm a daily 2-year government yield source per currency.
 
-Run this on a GitHub Actions runner (Actions tab -> "Verify yield
-sources" -> Run workflow). It reaches hosts that a Claude container
-cannot, reports plain facts, and changes nothing.
+Run from the Actions tab -> "Verify yield sources" -> Run workflow.
+Read-only. Changes nothing. Paste the output back.
 
-It answers two questions:
+WHAT ROUND 1 ESTABLISHED
 
-  1. For each FRED series we have written down as a candidate: what is
-     its real title, its units, how often does it update, and what are
-     its last few values? A series whose dates land on the first of each
-     month is monthly, not daily. A series titled "10-Year" is not a 2y
-     yield, whatever our dict calls it.
+  FRED is unreachable from a GitHub Actions runner. Every request to
+  fred.stlouisfed.org timed out, which is why that run took 7m39s. It
+  is not a bad series ID — the host does not answer datacenter IPs. So
+  FRED is dropped entirely and the Rates component is rebuilt against
+  the national publishers instead.
 
-  2. Which official national publishers are reachable, and in what
-     format? That is the route to genuine daily 2y yields for the
-     non-US currencies, which FRED does not cover well.
+  Confirmed working and genuinely 2-year, daily:
+      USD  US Treasury par yield curve XML
+      JPY  MOF JGB daily CSV          ("2年" column, e.g. 1.939)
+      CAD  Bank of Canada Valet JSON  (BD.CDN.2YR.DQ.YLD)
+      AUD  RBA F2 CSV                 ("Australian Government 2 year bond")
 
-Paste the whole output back into the conversation. Nothing gets marked
-verified on the strength of a plausible-looking series ID.
+  Still unresolved — this round's real job:
+      EUR  Bundesbank returned 404 (my series key was a guess)
+      GBP  Bank of England returned an HTML page, not data
+      NZD  RBNZ returned 403 (the real files are .xlsx, not .csv)
+
+This round runs every request in parallel on a 12-second timeout, so it
+finishes in under a minute rather than eight.
+
+Each GBP candidate is an Interactive Database series code. IUDBEDR
+(Bank Rate) is included as a CONTROL: if the control returns data and
+the yield codes do not, the endpoint is fine and the codes are wrong —
+which is a different problem from the endpoint being unusable.
 """
 
 from __future__ import annotations
@@ -25,110 +36,114 @@ from __future__ import annotations
 import re
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, timedelta
 
-UA = {"User-Agent": "wagmacro-verify/1.0 (research)"}
-TIMEOUT = 25
+UA = {"User-Agent": "Mozilla/5.0 (compatible; wagmacro-verify/2.0)"}
+TIMEOUT = 12
+READ_BYTES = 3000
+_WS = re.compile(r"\s+")
 
-# What we currently have written down, plus the 10-year series the
-# IRLTLT01 family is suspected of actually being, so the comparison is
-# visible rather than inferred.
-FRED_CANDIDATES = {
-    "USD 2y (expect: 2-Year Treasury, daily)": "DGS2",
-    "USD 10y (control)": "DGS10",
-    "EUR  current entry": "IRLTLT01DEM156N",
-    "GBP  current entry": "IRLTLT01GBM156N",
-    "JPY  current entry": "IRLTLT01JPM156N",
-    "CAD  current entry": "IRLTLT01CAM156N",
-    "AUD  current entry": "IRLTLT01AUM156N",
-    "NZD  current entry": "IRLTLT01NZM156N",
-    # Daily euro-area long rate, as a possible better-frequency anchor.
-    "EUR  alt daily": "IRLTLT01EZM156N",
-}
+_START = (date.today() - timedelta(days=60)).isoformat()
+_BOE_FROM = (date.today() - timedelta(days=30)).strftime("%d/%b/%Y")
+_BOE_TO = date.today().strftime("%d/%b/%Y")
 
-# Official publishers of 2-year government yields, one per currency.
-# We are checking reachability and format only.
-NATIONAL_SOURCES = {
-    "US  Treasury par yield curve (XML)":
+
+def _iadb(code: str) -> str:
+    return ("https://www.bankofengland.co.uk/boeapps/database/"
+            f"_iadb-fromshowcolumns.asp?csv.x=yes&SeriesCodes={code}"
+            f"&UsingCodes=Y&CSVF=TN&Datefrom={_BOE_FROM}&Dateto={_BOE_TO}")
+
+
+def _ecb(key: str) -> str:
+    return (f"https://data-api.ecb.europa.eu/service/data/YC/{key}"
+            f"?startPeriod={_START}&format=csvdata")
+
+
+CANDIDATES: dict[str, str] = {
+    # -- already confirmed; re-run so one output shows the whole picture --
+    "USD  Treasury par yield XML  [CONFIRMED]":
         "https://home.treasury.gov/resource-center/data-chart-center/"
-        "interest-rates/pages/xml?data=daily_treasury_yield_curve&"
-        "field_tdr_date_value=2026",
-    "DE  Bundesbank 2y (CSV)":
-        "https://api.statistiken.bundesbank.de/rest/download/BBSIS/"
-        "D.I.ZST.ZI.EUR.S1312.B.A604.R02XX.R.A.A._Z._Z.A?format=csv&lang=en",
-    "UK  Bank of England yield curve page":
-        "https://www.bankofengland.co.uk/statistics/yield-curves",
-    "JP  MOF JGB daily yields (CSV)":
+        "interest-rates/pages/xml?data=daily_treasury_yield_curve"
+        f"&field_tdr_date_value={date.today().year}",
+    "JPY  MOF JGB daily CSV  [CONFIRMED]":
         "https://www.mof.go.jp/jgbs/reference/interest_rate/jgbcm.csv",
-    "CA  Bank of Canada Valet (JSON)":
+    "CAD  BoC Valet 2y JSON  [CONFIRMED]":
         "https://www.bankofcanada.ca/valet/observations/"
         "BD.CDN.2YR.DQ.YLD/json?recent=5",
-    "AU  RBA F2 capital market yields (CSV)":
+    "AUD  RBA F2 CSV  [CONFIRMED]":
         "https://www.rba.gov.au/statistics/tables/csv/f2-data.csv",
-    "NZ  RBNZ B2 wholesale rates (CSV)":
+
+    # -- EUR: ECB Data Portal yield curve, two instrument variants --
+    "EUR  ECB YC AAA-only 2y":
+        _ecb("B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y"),
+    "EUR  ECB YC all-govt 2y":
+        _ecb("B.U2.EUR.4F.G_N_C.SV_C_YM.SR_2Y"),
+    "EUR  Bundesbank /rest/data/ 2y":
+        "https://api.statistiken.bundesbank.de/rest/data/BBSIS/"
+        "D.I.ZST.ZI.EUR.S1312.B.A604.R02XX.R.A.A._Z._Z.A?format=csv&lang=en",
+
+    # -- GBP: IADB. IUDBEDR is the control, not a yield. --
+    "GBP  IADB IUDBEDR  [CONTROL: Bank Rate]": _iadb("IUDBEDR"),
+    "GBP  IADB IUDSNPY": _iadb("IUDSNPY"),
+    "GBP  IADB IUDMNPY": _iadb("IUDMNPY"),
+    "GBP  IADB IUDLNPY": _iadb("IUDLNPY"),
+    "GBP  BoE yield curve archive (zip)":
+        "https://www.bankofengland.co.uk/-/media/boe/files/statistics/"
+        "yield-curves/latest-yield-curve-data.zip",
+
+    # -- NZD: the real RBNZ files are spreadsheets --
+    "NZD  RBNZ hb2-daily-close.xlsx":
         "https://www.rbnz.govt.nz/-/media/project/sites/rbnz/files/"
-        "statistics/series/b/b2/hb2-daily.csv",
+        "statistics/series/b/b2/hb2-daily-close.xlsx",
+    "NZD  RBNZ hb2-monthly-close.xlsx":
+        "https://www.rbnz.govt.nz/-/media/project/sites/rbnz/files/"
+        "statistics/series/b/b2/hb2-monthly-close.xlsx",
 }
 
 
-def get(url: str, limit: int = 4000) -> tuple[int | str, str]:
+def probe(item: tuple[str, str]) -> str:
+    label, url = item
     try:
         req = urllib.request.Request(url, headers=UA)
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-            return r.status, r.read(limit).decode("utf-8", errors="replace")
+            status = r.status
+            ctype = r.headers.get("Content-Type", "?")
+            clen = r.headers.get("Content-Length", "?")
+            raw = r.read(READ_BYTES)
     except urllib.error.HTTPError as e:
-        return e.code, f"HTTPError {e.code}"
-    except Exception as e:                       # noqa: BLE001 - reporting tool
-        return "ERR", f"{type(e).__name__}: {e}"
+        return f"\n{label}\n  status: {e.code} HTTPError\n"
+    except Exception as e:                       # noqa: BLE001 — reporting tool
+        return f"\n{label}\n  status: ERR  {type(e).__name__}: {e}\n"
 
+    out = [f"\n{label}",
+           f"  status: {status}   type: {ctype}   length: {clen}"]
 
-def probe_fred(label: str, series_id: str) -> None:
-    print(f"\n{'-' * 68}\n{label}   id={series_id}")
+    if raw[:2] == b"PK":
+        out.append(f"  body  : BINARY zip/xlsx, first {len(raw)} bytes read — "
+                   "parseable with openpyxl")
+        return "\n".join(out) + "\n"
 
-    status, body = get(f"https://fred.stlouisfed.org/series/{series_id}")
-    if status == 200:
-        m = re.search(r"<title>(.*?)</title>", body, re.S)
-        title = re.sub(r"\s+", " ", m.group(1)).strip() if m else "(no title found)"
-        print(f"  title : {title}")
-    else:
-        print(f"  title : unavailable (status {status})")
+    text = raw.decode("utf-8", errors="replace")
+    if "<html" in text[:400].lower() or "<!doctype html" in text[:400].lower():
+        out.append("  body  : HTML PAGE, not data — unusable as a feed")
+        return "\n".join(out) + "\n"
 
-    status, body = get(
-        f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}")
-    if status != 200:
-        print(f"  data  : unavailable (status {status}) {body[:120]}")
-        return
-
-    rows = [r for r in body.strip().splitlines() if r.strip()]
-    print(f"  header: {rows[0]}")
-    data = [r.split(",") for r in rows[1:]]
-    dated = [d for d in data if len(d) >= 2 and d[1].strip() not in {"", "."}]
-    if not dated:
-        print("  data  : no usable observations")
-        return
-    print(f"  span  : {dated[0][0]} -> {dated[-1][0]}   ({len(dated)} obs)")
-    print(f"  last 5: {', '.join(f'{d[0]}={d[1]}' for d in dated[-5:])}")
-
-    days = {d[0].split("-")[2] for d in dated[-12:]}
-    print(f"  cadence: {'MONTHLY (all same day-of-month)' if len(days) == 1 else 'daily or business-daily'}")
-
-
-def probe_source(label: str, url: str) -> None:
-    status, body = get(url, limit=600)
-    head = re.sub(r"\s+", " ", body[:220]).strip()
-    print(f"\n{label}\n  status: {status}\n  head  : {head}")
+    out.append("  body  :")
+    for line in [l for l in text.splitlines() if l.strip()][:6]:
+        flat = _WS.sub(" ", line)[:150]
+        out.append("      " + flat)
+    return "\n".join(out) + "\n"
 
 
 if __name__ == "__main__":
-    print("=" * 68)
-    print("PART 1 - what the FRED candidates really are")
-    print("=" * 68)
-    for label, sid in FRED_CANDIDATES.items():
-        probe_fred(label, sid)
+    print("=" * 70)
+    print("ROUND 2 — daily 2y government yield sources")
+    print(f"ECB startPeriod={_START}   BoE window={_BOE_FROM}..{_BOE_TO}")
+    print("=" * 70)
 
-    print("\n\n" + "=" * 68)
-    print("PART 2 - official national publishers: reachable? what format?")
-    print("=" * 68)
-    for label, url in NATIONAL_SOURCES.items():
-        probe_source(label, url)
+    with ThreadPoolExecutor(max_workers=14) as pool:
+        for block in pool.map(probe, CANDIDATES.items()):
+            print(block)
 
-    print("\n\nDone. Paste all of the above back into the conversation.")
+    print("\nDone. Paste all of the above back into the conversation.")
