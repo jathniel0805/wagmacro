@@ -14,5 +14,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Probe FRED series and national publishers
+      # openpyxl is needed only to look inside the BoE yield-curve
+      # archive. It is a probe-time dependency, not a package one.
+      - name: Install probe dependencies
+        run: pip install --quiet openpyxl==3.1.5
+
+      - name: Probe yield sources
         run: python tools/verify_yields.py
