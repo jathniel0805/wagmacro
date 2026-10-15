@@ -35,6 +35,7 @@ import zipfile
 from datetime import date, datetime
 
 from ...core.types import Currency
+from . import base
 from .base import ProviderResult, Series, merge
 
 #: BOTH are fetched and merged, in this order, so the later one wins on
@@ -154,6 +155,9 @@ def fetch(get) -> ProviderResult:
     if not merged:
         return ProviderResult(Currency.GBP, URLS[-1],
                               detail="; ".join(notes) or "no attempt made")
+    if base.last_merge_conflicts:
+        notes.append("SOURCES DISAGREE on "
+                     + "; ".join(base.last_merge_conflicts))
     return ProviderResult(
         Currency.GBP, URLS[-1], series=merged, ok=True,
         detail=f"{len(merged)} obs merged, latest {merged[-1][0]} "

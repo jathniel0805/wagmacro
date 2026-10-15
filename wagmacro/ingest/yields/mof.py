@@ -27,6 +27,7 @@ import io
 from datetime import date
 
 from ...core.types import Currency
+from . import base
 from .base import ProviderResult, Series, merge
 
 #: ALL of these are fetched and merged, later winning on a shared date.
@@ -128,6 +129,9 @@ def fetch(get) -> ProviderResult:
     if not merged:
         return ProviderResult(Currency.JPY, URLS[-1],
                               detail="; ".join(notes) or "no attempt made")
+    if base.last_merge_conflicts:
+        notes.append("SOURCES DISAGREE on "
+                     + "; ".join(base.last_merge_conflicts))
     return ProviderResult(
         Currency.JPY, URLS[-1], series=merged, ok=True,
         detail=f"{len(merged)} obs merged, latest {merged[-1][0]} "

@@ -109,6 +109,15 @@ def from_manual(as_of: date,
     return YieldSet(as_of=as_of, points=points, verified_source=True)
 
 
+#: Dates where two merged sources disagreed, with both values. Read by
+#: the adapters and surfaced in the diagnostic — see merge() below.
+last_merge_conflicts: tuple[str, ...] = ()
+
+#: Below this, a disagreement is rounding between publishers' own
+#: precision. Above it, the two files are probably different series.
+MERGE_CONFLICT_TOLERANCE = 0.005
+
+
 def merge(*parts: Series) -> Series:
     """Combine several series, later arguments winning on a shared date.
 
@@ -118,10 +127,28 @@ def merge(*parts: Series) -> Series:
     series came back fourteen days stale for exactly that reason. Merging
     keeps the archive's depth and the current file's freshness, and the
     argument order decides who wins where they overlap.
+
+    It also records where the sources DISAGREED. Two files from the same
+    publisher that give different numbers for the same day are usually
+    not the same series, and silently letting one overwrite the other is
+    how a wrong number enters without anybody noticing. An RBA file
+    added speculatively did exactly that — it moved a verified reading
+    by 2bp — which is why this reporting exists.
     """
+    global last_merge_conflicts
     combined: dict[date, float] = {}
+    conflicts: list[str] = []
+
     for part in parts:
-        combined.update(part)
+        for when, value in part:
+            previous = combined.get(when)
+            if previous is not None and \
+                    abs(previous - value) > MERGE_CONFLICT_TOLERANCE:
+                if len(conflicts) < 5:
+                    conflicts.append(f"{when}: {previous} vs {value}")
+            combined[when] = value
+
+    last_merge_conflicts = tuple(conflicts)
     return tuple(sorted(combined.items()))
 
 

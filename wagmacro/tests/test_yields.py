@@ -26,7 +26,7 @@ import zipfile
 from datetime import date
 
 from wagmacro.core.types import Currency
-from wagmacro.ingest.yields import boc, boe, ecb, mof, rba, treasury
+from wagmacro.ingest.yields import base, boc, boe, ecb, mof, rba, treasury
 from wagmacro.ingest.yields.base import (YieldPoint, YieldSet, from_manual,
                                          merge, point_from_series)
 
@@ -336,6 +336,27 @@ class TestMerge(unittest.TestCase):
     def test_tolerates_empty_parts(self):
         self.assertEqual(merge((), self.CURRENT, ()), self.CURRENT)
         self.assertEqual(merge(), ())
+
+    def test_reports_when_two_sources_disagree(self):
+        # The RBA mistake: a speculative second file silently moved a
+        # verified reading by 2bp. Overwriting is fine; doing it in
+        # silence is not.
+        a = ((date(2026, 9, 30), 4.942),)
+        b = ((date(2026, 9, 30), 4.922),)
+        merge(a, b)
+        self.assertTrue(base.last_merge_conflicts)
+        self.assertIn("4.942", base.last_merge_conflicts[0])
+        self.assertIn("4.922", base.last_merge_conflicts[0])
+
+    def test_rounding_differences_are_not_flagged(self):
+        a = ((date(2026, 9, 30), 4.9420),)
+        b = ((date(2026, 9, 30), 4.9421),)
+        merge(a, b)
+        self.assertEqual(base.last_merge_conflicts, ())
+
+    def test_agreeing_overlap_is_not_flagged(self):
+        merge(self.ARCHIVE, self.ARCHIVE)
+        self.assertEqual(base.last_merge_conflicts, ())
 
 
 class TestRbaDiagnostics(unittest.TestCase):

@@ -22,17 +22,24 @@ import io
 from datetime import date, datetime
 
 from ...core.types import Currency
+from . import base
 from .base import ProviderResult, Series, merge
 
-#: Fetched and merged, later winning on a shared date. The first is the
-#: verified file; on 2026-10-15 it returned 3,292 observations but the
-#: newest was 2026-10-07, a week behind the other publishers. Whether
-#: that is an RBA publication lag or rows this parser is dropping is an
-#: open question — `skipped_rows` below is what answers it, rather than
-#: another round of guessing.
+#: One file, deliberately.
+#:
+#: f2.1-data.csv was tried on 2026-10-15 and is a mistake worth
+#: recording. It returned 157 observations ending 2026-09-30 — no
+#: fresher than f2-data.csv — and where the two overlapped it DISAGREED,
+#: moving 2026-09-30 from 4.942 to 4.922. Two RBA files giving different
+#: numbers for the same day are not the same series, and the speculative
+#: one was quietly overwriting the verified one. It is gone.
+#:
+#: The 2026-10-07 staleness is now explained too: `skipped_rows` came
+#: back empty, so no rows were dropped for an unrecognised date format.
+#: The file genuinely ends there. That is an RBA publication lag, not a
+#: parser bug, and the staleness flag on the board is the right response.
 URLS = (
     "https://www.rba.gov.au/statistics/tables/csv/f2-data.csv",
-    "https://www.rba.gov.au/statistics/tables/csv/f2.1-data.csv",
 )
 
 TITLE_ROW_KEY = "title"
@@ -132,6 +139,9 @@ def fetch(get) -> ProviderResult:
     if not merged:
         return ProviderResult(Currency.AUD, URLS[0],
                               detail="; ".join(notes) or "no attempt made")
+    if base.last_merge_conflicts:
+        notes.append("SOURCES DISAGREE on "
+                     + "; ".join(base.last_merge_conflicts))
     return ProviderResult(
         Currency.AUD, URLS[0], series=merged, ok=True,
         detail=f"{len(merged)} obs merged, latest {merged[-1][0]} "
