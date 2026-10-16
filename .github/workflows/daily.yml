@@ -1,10 +1,20 @@
 name: Daily macro board
 
-# 22:30 UTC Sun-Thu = 06:30 Manila Mon-Fri, after the New York close.
-# Change the five cron fields to move it; everything else can stay.
+# 00:30 UTC Mon-Fri = 08:30 Manila Mon-Fri, after the New York close.
+#
+# The previous schedule, 22:30 UTC Sun-Thu, was wrong twice over. It ran
+# at 06:30 Manila, which is still the PREVIOUS day in UTC — so the board
+# stamped itself a day behind the reader's calendar, every single day.
+# And Sun-Thu UTC left Friday evening through Sunday evening with no run
+# at all, so a Friday-afternoon reader saw Thursday's date and assumed
+# the thing was broken.
+#
+# Running at 00:30 UTC puts the UTC date and Manila's date on the same
+# calendar day, and Mon-Fri covers every FX trading day. Monday's run
+# still picks up Friday's COT release.
 on:
   schedule:
-    - cron: "30 22 * * 0-4"
+    - cron: "30 0 * * 1-5"
   workflow_dispatch:          # lets you run it by hand from the Actions tab
 
 permissions:
