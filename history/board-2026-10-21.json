@@ -1,0 +1,306 @@
+{
+  "as_of": "2026-10-21",
+  "generated_at": "2026-10-21T01:11:20.240332+00:00",
+  "methodology_version": "1.0.0",
+  "readings": [
+    {
+      "currency": "AUD",
+      "total": 1,
+      "band": "neutral",
+      "derived": false,
+      "note": "",
+      "components": [
+        {
+          "kind": "rates",
+          "value": 0,
+          "reason": "2y differential +1.36pp vs peers, narrowing 17bp over 20 days.",
+          "confidence": "ok",
+          "inputs": {
+            "differential_pp": 1.361,
+            "change_bps": -17.5
+          }
+        },
+        {
+          "kind": "positioning",
+          "value": 1,
+          "reason": "Leveraged funds net +50,591 of 339,464 OI; +14.9% of open interest (level bands \u2014 0w history, 52w needed for percentile).",
+          "confidence": "ok",
+          "inputs": {
+            "net_share_of_oi": 0.149,
+            "report_date": "2026-10-13"
+          }
+        },
+        {
+          "kind": "calendar",
+          "value": 0,
+          "reason": "No High or Medium impact events in the window.",
+          "confidence": "ok",
+          "inputs": {
+            "events": 0
+          }
+        }
+      ]
+    },
+    {
+      "currency": "CAD",
+      "total": 0,
+      "band": "neutral",
+      "derived": false,
+      "note": "",
+      "components": [
+        {
+          "kind": "rates",
+          "value": 0,
+          "reason": "2y differential -0.55pp vs peers, widening 6bp over 20 days.",
+          "confidence": "ok",
+          "inputs": {
+            "differential_pp": -0.546,
+            "change_bps": 5.9
+          }
+        },
+        {
+          "kind": "positioning",
+          "value": -2,
+          "reason": "Leveraged funds net -88,112 of 378,204 OI; -23.3% of open interest (level bands \u2014 0w history, 52w needed for percentile).",
+          "confidence": "ok",
+          "inputs": {
+            "net_share_of_oi": -0.233,
+            "report_date": "2026-10-13"
+          }
+        },
+        {
+          "kind": "calendar",
+          "value": 2,
+          "reason": "4 of 4 event(s) scored, weighted sum +1.00 (forecast vs previous \u2014 expectations, not surprises).",
+          "confidence": "partial",
+          "inputs": {
+            "events": 4,
+            "scored": 4,
+            "weighted_sum": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "currency": "EUR",
+      "total": -2,
+      "band": "neutral",
+      "derived": false,
+      "note": "",
+      "components": [
+        {
+          "kind": "rates",
+          "value": -1,
+          "reason": "2y differential -0.88pp vs peers, narrowing 13bp over 20 days.",
+          "confidence": "ok",
+          "inputs": {
+            "differential_pp": -0.878,
+            "change_bps": -12.6
+          }
+        },
+        {
+          "kind": "positioning",
+          "value": -1,
+          "reason": "Leveraged funds net -68,001 of 874,541 OI; -7.8% of open interest (level bands \u2014 0w history, 52w needed for percentile).",
+          "confidence": "ok",
+          "inputs": {
+            "net_share_of_oi": -0.0778,
+            "report_date": "2026-10-13"
+          }
+        },
+        {
+          "kind": "calendar",
+          "value": 0,
+          "reason": "4 of 4 event(s) scored, weighted sum -0.01 (forecast vs previous \u2014 expectations, not surprises).",
+          "confidence": "partial",
+          "inputs": {
+            "events": 4,
+            "scored": 4,
+            "weighted_sum": -0.009
+          }
+        }
+      ]
+    },
+    {
+      "currency": "GBP",
+      "total": 1,
+      "band": "neutral",
+      "derived": false,
+      "note": "",
+      "components": [
+        {
+          "kind": "rates",
+          "value": 2,
+          "reason": "2y differential +1.11pp vs peers, widening 16bp over 20 days.",
+          "confidence": "ok",
+          "inputs": {
+            "differential_pp": 1.108,
+            "change_bps": 16.3
+          }
+        },
+        {
+          "kind": "positioning",
+          "value": 0,
+          "reason": "Leveraged funds net +10,313 of 268,532 OI; +3.8% of open interest (level bands \u2014 0w history, 52w needed for percentile).",
+          "confidence": "ok",
+          "inputs": {
+            "net_share_of_oi": 0.0384,
+            "report_date": "2026-10-13"
+          }
+        },
+        {
+          "kind": "calendar",
+          "value": -1,
+          "reason": "5 of 6 event(s) scored, weighted sum -0.31 (forecast vs previous \u2014 expectations, not surprises).",
+          "confidence": "partial",
+          "inputs": {
+            "events": 6,
+            "scored": 5,
+            "weighted_sum": -0.314
+          }
+        }
+      ]
+    },
+    {
+      "currency": "JPY",
+      "total": -2,
+      "band": "neutral",
+      "derived": false,
+      "note": "",
+      "components": [
+        {
+          "kind": "rates",
+          "value": -1,
+          "reason": "2y differential -2.25pp vs peers, widening 6bp over 20 days.",
+          "confidence": "ok",
+          "inputs": {
+            "differential_pp": -2.251,
+            "change_bps": 5.5
+          }
+        },
+        {
+          "kind": "positioning",
+          "value": -1,
+          "reason": "Leveraged funds net -33,673 of 373,502 OI; -9.0% of open interest (level bands \u2014 0w history, 52w needed for percentile).",
+          "confidence": "ok",
+          "inputs": {
+            "net_share_of_oi": -0.0902,
+            "report_date": "2026-10-13"
+          }
+        },
+        {
+          "kind": "calendar",
+          "value": 0,
+          "reason": "No High or Medium impact events in the window.",
+          "confidence": "ok",
+          "inputs": {
+            "events": 0
+          }
+        }
+      ]
+    },
+    {
+      "currency": "NZD",
+      "total": -2,
+      "band": "neutral",
+      "derived": false,
+      "note": "",
+      "components": [
+        {
+          "kind": "rates",
+          "value": 0,
+          "reason": "No 2-year yield available for this currency.",
+          "confidence": "unavailable",
+          "inputs": {}
+        },
+        {
+          "kind": "positioning",
+          "value": -1,
+          "reason": "Leveraged funds net -11,619 of 125,151 OI; -9.3% of open interest (level bands \u2014 0w history, 52w needed for percentile).",
+          "confidence": "ok",
+          "inputs": {
+            "net_share_of_oi": -0.0928,
+            "report_date": "2026-10-13"
+          }
+        },
+        {
+          "kind": "calendar",
+          "value": -1,
+          "reason": "1 of 1 event(s) scored, weighted sum -0.47 (forecast vs previous \u2014 expectations, not surprises).",
+          "confidence": "partial",
+          "inputs": {
+            "events": 1,
+            "scored": 1,
+            "weighted_sum": -0.467
+          }
+        }
+      ]
+    },
+    {
+      "currency": "USD",
+      "total": 1,
+      "band": "neutral",
+      "derived": true,
+      "note": "",
+      "components": [
+        {
+          "kind": "rates",
+          "value": 1,
+          "reason": "2y differential +1.21pp vs peers, widening 2bp over 20 days.",
+          "confidence": "ok",
+          "inputs": {
+            "differential_pp": 1.206,
+            "change_bps": 2.3
+          }
+        },
+        {
+          "kind": "positioning",
+          "value": 0,
+          "reason": "Leveraged funds derived from the other six contracts; +6.0% of open interest (level bands \u2014 0w history, 52w needed for percentile).",
+          "confidence": "partial",
+          "inputs": {
+            "net_share_of_oi": 0.0595,
+            "report_date": null
+          }
+        },
+        {
+          "kind": "calendar",
+          "value": 0,
+          "reason": "3 of 5 event(s) scored, weighted sum -0.02 (forecast vs previous \u2014 expectations, not surprises).",
+          "confidence": "partial",
+          "inputs": {
+            "events": 5,
+            "scored": 3,
+            "weighted_sum": -0.019
+          }
+        }
+      ]
+    }
+  ],
+  "sources": {
+    "cot": {
+      "url": "https://www.cftc.gov/dea/newcot/FinFutWk.txt",
+      "retrieved_at": "2026-10-21T01:11:14.068323+00:00",
+      "data_dated": null,
+      "transport": "http",
+      "ok": true,
+      "detail": ""
+    },
+    "calendar": {
+      "url": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+      "retrieved_at": "2026-10-21T01:11:14.232912+00:00",
+      "data_dated": null,
+      "transport": "http",
+      "ok": true,
+      "detail": ""
+    },
+    "yields": {
+      "url": "https://github.com/jathniel0805/wagmacro/tree/main/wagmacro/ingest/yields",
+      "retrieved_at": "2026-10-21T01:11:20.239914+00:00",
+      "data_dated": "2026-10-20",
+      "transport": "http",
+      "ok": true,
+      "detail": "2y from AUD, CAD, EUR, GBP, JPY, USD"
+    }
+  }
+}
